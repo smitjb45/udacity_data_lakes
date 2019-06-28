@@ -29,7 +29,8 @@ def process_song_data(spark, input_data, output_data):
     df = spark.read.json(song_data)
 
     # extract columns to create songs table
-    global songs_table = df.select(['song_id', 'title', 'artist_id', 'year', 'duration'])
+    global songs_table
+    songs_table = df.select(['song_id', 'title', 'artist_id', 'year', 'duration'])
     
     # write songs table to parquet files partitioned by year and artist
     songs_table.write.partitionBy("year", "artist_id").parquet("SongTable.parquet")
@@ -66,8 +67,8 @@ def process_log_data(spark, input_data, output_data):
 #     df = 
     
     # extract columns to create time table
-    time_table = dfL.select('ts', hour('time_stamp') as 'hour', dayofmonth('time_stamp') as 'day', weekofyear('time_stamp') as 'week' \
-                            , month('time_stamp') as 'month', year('time_stamp') as 'year', date_format('time_stamp', 'EEEE') as 'weekday')
+    time_table = dfL.select('ts', hour('time_stamp').alias('hour'), dayofmonth('time_stamp').alias('day'), weekofyear('time_stamp').alias('week')
+                            , month('time_stamp').alias('month'), year('time_stamp').alias('year'), date_format('time_stamp', 'EEEE').alias('weekday'))
     
     # write time table to parquet files partitioned by year and month
     time_table.write.partitionBy("year", "month").parquet("SongTable.parquet")
@@ -76,11 +77,11 @@ def process_log_data(spark, input_data, output_data):
     song_df = songs_table
 
     # extract columns from joined song and log datasets to create songplays table 
-    songplays_table = song_df.join(dfLog).where((artist_and_song.title ==  dfLog.song) & \ 
-                                                (artist_and_song.artist_name == dfLog.artist) & \
-                                                (artist_and_song.duration == dfLog.length)) \
-                                                .select('ts', 'userid', 'level', 'song_id', 'artist_id', \
-                                                        'sessionid', 'location', 'useragent')
+    songplays_table = song_df.join(dfLog).where((artist_and_song.title ==  dfLog.song) &  
+                                                (artist_and_song.artist_name == dfLog.artist) & 
+                                                (artist_and_song.duration == dfLog.length)).select('ts', 'userid', 'level', \
+                                                                                                   'song_id', 'artist_id','sessionid', \
+                                                                                                   'location', 'useragent')
 
     # write songplays table to parquet files partitioned by year and month
     songplays_table.join(time_table.select('ts', 'year', 'month')).where(songplays_table.ts ==  time_table.ts).write.partitionBy("year", "month").parquet("songplaysTable.parquet")
